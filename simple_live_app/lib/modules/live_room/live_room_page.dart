@@ -246,14 +246,13 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   children: [
                     buildUserProfile(context),
                     buildMessageArea(),
-            ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
-      ],
-          ),
-        ),
-        Container(
+      ),
+      Container(
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             border: Border(
@@ -332,9 +331,12 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             ],
           ),
         ),
+      ),
       ],
     );
   }
+
+  Widget buildMediaPlayer() {
     var boxFit = BoxFit.contain;
     double? aspectRatio;
     if (AppSettingsController.instance.scaleMode.value == 0) {
