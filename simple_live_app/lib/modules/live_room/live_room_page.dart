@@ -526,30 +526,39 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 child: const Icon(Remix.share_line),
               ),
             ),
-            Expanded(
+            Flexible(
+              fit: FlexFit.loose,
               child: Obx(
                 () => RecordingService.instance.isRecording.value
                     ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           TextButton(
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(36, 36),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: RecordingService.instance.toggleRecording,
                             child: const Icon(
                               Remix.stop_circle_line,
                               color: Colors.red,
+                              size: 20,
                             ),
                           ),
                           TextButton(
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(36, 36),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: RecordingService.instance.cancelRecording,
                             child: const Icon(
                               Remix.close_circle_line,
                               color: Colors.red,
+                              size: 20,
                             ),
                           ),
                         ],

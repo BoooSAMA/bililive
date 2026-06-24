@@ -9,7 +9,7 @@ import 'package:simple_live_app/services/follow_service.dart';
 
 class FollowUserController extends BasePageController<FollowUser> {
   /// 0:全部(分组) 1:直播中 2:未直播
-  var filterMode = 0.obs;
+  var filterMode = 1.obs;
 
   /// 分组：直播中的直播间
   var liveItems = <FollowUser>[].obs;
