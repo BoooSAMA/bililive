@@ -112,6 +112,7 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   static const int _maxRecordingRetries = 3;
   String _recordingOutputPath = "";
   String? _recordingLastError;
+  bool _discardRequested = false;
 
   /// 直播间加载失败
   var loadError = false.obs;
@@ -1193,7 +1194,17 @@ ${error?.stackTrace}''');
           await _onRecordingFinished();
         } else if (ReturnCode.isCancel(returnCode)) {
           Log.logPrint("录音已取消");
-          SmartDialog.showToast(_formatRecordingSummary("录音已停止 ⏹"));
+          if (_discardRequested) {
+            _discardRequested = false;
+            // 用户要求取消（删除文件）
+            try {
+              var file = File(_recordingOutputPath);
+              if (file.existsSync()) file.deleteSync();
+            } catch (_) {}
+            SmartDialog.showToast("录音已取消");
+          } else {
+            SmartDialog.showToast(_formatRecordingSummary("录音已停止 ⏹"));
+          }
           await _onRecordingFinished();
         } else {
           var output = await session.getOutput();
@@ -1304,8 +1315,22 @@ ${error?.stackTrace}''');
     return "$status $duration · $fileSize · $fileName";
   }
 
-  /// 停止录音
+  /// 停止录音（保存文件）
   void _stopRecording() {
+    _discardRequested = false;
+    _doCancelFfmpeg();
+    SmartDialog.showToast("正在停止录音...");
+  }
+
+  /// 取消录音（删除文件）
+  void cancelRecording() {
+    _discardRequested = true;
+    _doCancelFfmpeg();
+    SmartDialog.showToast("正在取消录音...");
+  }
+
+  /// 取消 FFmpeg 进程并清理定时器
+  void _doCancelFfmpeg() {
     if (_recordingSessionId != null) {
       FFmpegKit.cancel(_recordingSessionId);
       _recordingSessionId = null;
@@ -1313,8 +1338,6 @@ ${error?.stackTrace}''');
     _recordingTimer?.cancel();
     _recordingTimer = null;
     isRecording.value = false;
-    // 取消时立即反馈，最终状态由 FFmpeg 回调中的 cancel 分支补充详细提示
-    SmartDialog.showToast("正在停止录音...");
   }
 
   @override

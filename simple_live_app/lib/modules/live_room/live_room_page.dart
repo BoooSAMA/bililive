@@ -267,79 +267,65 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           child: Row(
             children: [
               Obx(
-                () => controller.followed.value
-                    ? TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
-                        onPressed: controller.removeFollowUser,
-                        icon: const Icon(Remix.heart_fill),
-                        label: const Text("取消关注"),
-                      )
-                    : TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
-                        onPressed: controller.followUser,
-                        icon: const Icon(Remix.heart_line),
-                        label: const Text("关注"),
-                      ),
-              ),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 14),
+                () => TextButton(
+                  onPressed: controller.followed.value
+                      ? controller.removeFollowUser
+                      : controller.followUser,
+                  child: Icon(
+                    controller.followed.value
+                        ? Remix.heart_fill
+                        : Remix.heart_line,
+                  ),
                 ),
+              ),
+              TextButton(
                 onPressed: controller.refreshRoom,
-                icon: const Icon(Remix.refresh_line),
-                label: const Text("刷新"),
+                child: const Icon(Remix.refresh_line),
               ),
               const Expanded(child: Center()),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 14),
-                ),
+              TextButton(
                 onPressed: controller.share,
-                icon: const Icon(Remix.share_line),
-                label: const Text("分享"),
+                child: const Icon(Remix.share_line),
               ),
               Obx(
                 () => controller.isRecording.value
-                    ? TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                          foregroundColor: Colors.red,
-                        ),
-                        onPressed: controller.toggleRecording,
-                        icon: const Icon(
-                          Remix.stop_circle_line,
-                          color: Colors.red,
-                        ),
-                        label: const Text("停止"),
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            onPressed: controller.toggleRecording,
+                            child: const Icon(
+                              Remix.stop_circle_line,
+                              color: Colors.red,
+                            ),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            onPressed: controller.cancelRecording,
+                            child: const Icon(
+                              Remix.close_circle_line,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
                       )
-                    : TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
+                    : TextButton(
                         onPressed: controller.toggleRecording,
-                        icon: const Icon(Remix.mic_line),
-                        label: const Text("录音"),
+                        child: const Icon(Remix.mic_line),
                       ),
               ),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 14),
-                ),
+              TextButton(
                 onPressed: controller.copyUrl,
-                icon: const Icon(Remix.file_copy_line),
-                label: const Text("复制链接"),
+                child: const Icon(Remix.file_copy_line),
               ),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 14),
-                ),
+              TextButton(
                 onPressed: controller.copyPlayUrl,
-                icon: const Icon(Remix.file_copy_line),
-                label: const Text("复制播放直链"),
+                child: const Icon(Remix.file_copy_line),
               ),
             ],
           ),
@@ -506,67 +492,61 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           children: [
             Expanded(
               child: Obx(
-                () => controller.followed.value
-                    ? TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
-                        onPressed: controller.removeFollowUser,
-                        icon: const Icon(Remix.heart_fill),
-                        label: const Text("取消关注"),
-                      )
-                    : TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
-                        onPressed: controller.followUser,
-                        icon: const Icon(Remix.heart_line),
-                        label: const Text("关注"),
-                      ),
+                () => TextButton(
+                  onPressed: controller.followed.value
+                      ? controller.removeFollowUser
+                      : controller.followUser,
+                  child: Icon(
+                    controller.followed.value
+                        ? Remix.heart_fill
+                        : Remix.heart_line,
+                  ),
+                ),
               ),
             ),
             Expanded(
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 14),
-                ),
+              child: TextButton(
                 onPressed: controller.refreshRoom,
-                icon: const Icon(Remix.refresh_line),
-                label: const Text("刷新"),
+                child: const Icon(Remix.refresh_line),
               ),
             ),
             Expanded(
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                  textStyle: const TextStyle(fontSize: 14),
-                ),
+              child: TextButton(
                 onPressed: controller.share,
-                icon: const Icon(Remix.share_line),
-                label: const Text("分享"),
+                child: const Icon(Remix.share_line),
               ),
             ),
             Expanded(
               child: Obx(
                 () => controller.isRecording.value
-                    ? TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                          foregroundColor: Colors.red,
-                        ),
-                        onPressed: controller.toggleRecording,
-                        icon: const Icon(
-                          Remix.stop_circle_line,
-                          color: Colors.red,
-                        ),
-                        label: const Text("停止"),
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            onPressed: controller.toggleRecording,
+                            child: const Icon(
+                              Remix.stop_circle_line,
+                              color: Colors.red,
+                            ),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            onPressed: controller.cancelRecording,
+                            child: const Icon(
+                              Remix.close_circle_line,
+                              color: Colors.red,
+                            ),
+                          ),
+                        ],
                       )
-                    : TextButton.icon(
-                        style: TextButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 14),
-                        ),
+                    : TextButton(
                         onPressed: controller.toggleRecording,
-                        icon: const Icon(Remix.mic_line),
-                        label: const Text("录音"),
+                        child: const Icon(Remix.mic_line),
                       ),
               ),
             ),
