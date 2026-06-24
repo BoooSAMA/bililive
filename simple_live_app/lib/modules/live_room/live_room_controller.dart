@@ -114,6 +114,9 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   String? _recordingLastError;
   bool _discardRequested = false;
 
+  /// 录音开始时间（用于文件名中含结束时间的重命名）
+  DateTime? _recordingStartTime;
+
   /// 直播间加载失败
   var loadError = false.obs;
   Error? error;
@@ -1250,8 +1253,41 @@ ${error?.stackTrace}''');
     });
   }
 
+  /// 录音结束时重命名文件，在文件名末尾追加结束时间（HH-MM）
+  Future<void> _renameRecordingFile(DateTime startTime) async {
+    if (_recordingOutputPath.isEmpty) return;
+    var file = File(_recordingOutputPath);
+    if (!await file.exists()) return;
+
+    var dir = file.parent.path;
+    var endTime = DateTime.now();
+    var userName = detail.value?.userName ?? "live";
+
+    var datePart =
+        "${startTime.year}-${startTime.month.toString().padLeft(2, '0')}-${startTime.day.toString().padLeft(2, '0')}";
+    var startPart =
+        "${startTime.hour.toString().padLeft(2, '0')}-${startTime.minute.toString().padLeft(2, '0')}";
+    var endPart =
+        "${endTime.hour.toString().padLeft(2, '0')}-${endTime.minute.toString().padLeft(2, '0')}";
+
+    var newFileName = "${userName}_${datePart}_${startPart}_${endPart}.m4a";
+    var newPath = "$dir/$newFileName";
+
+    try {
+      await file.rename(newPath);
+      _recordingOutputPath = newPath;
+      Log.d("录音文件重命名: $newFileName");
+    } catch (e) {
+      Log.d("录音文件重命名失败: $e");
+    }
+  }
+
   /// 清理录音状态
   Future<void> _onRecordingFinished() async {
+    if (!_discardRequested && _recordingStartTime != null) {
+      await _renameRecordingFile(_recordingStartTime!);
+    }
+    _recordingStartTime = null;
     _recordingTimer?.cancel();
     _recordingTimer = null;
     isRecording.value = false;
@@ -1261,6 +1297,8 @@ ${error?.stackTrace}''');
   /// 开始录音
   void _startRecording(String outputPath) async {
     _recordingOutputPath = outputPath;
+    _recordingStartTime = DateTime.now();
+    _discardRequested = false;
     _recordingRetryCount = 0;
 
     await _startFFmpegSessionInternal();
