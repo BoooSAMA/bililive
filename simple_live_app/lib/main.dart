@@ -24,6 +24,8 @@ import 'package:simple_live_app/routes/route_path.dart';
 import 'package:simple_live_app/services/db_service.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 import 'package:simple_live_app/services/local_storage_service.dart';
+import 'package:simple_live_app/services/auto_exit_service.dart';
+import 'package:simple_live_app/services/recording_service.dart';
 import 'package:simple_live_app/widgets/status/app_loadding_widget.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -70,6 +72,12 @@ Future initServices() async {
 
   // 自定义分区控制器（需提前注册，避免 CategoryPage 构建时找不到）
   Get.put(CustomCategoryViewController(), permanent: true);
+
+  // 录音服务
+  Get.put(RecordingService());
+
+  // 定时关闭服务
+  Get.put(AutoExitService());
 
   initCoreLog();
 }

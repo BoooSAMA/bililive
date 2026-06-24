@@ -16,27 +16,31 @@ import 'package:simple_live_core/simple_live_core.dart';
 
 Widget playerControls(
   VideoState videoState,
-  LiveRoomController controller,
-) {
+  LiveRoomController controller, {
+  dynamic page,
+}) {
   return Obx(() {
     if (controller.fullScreenState.value) {
       return buildFullControls(
         videoState,
         controller,
+        page: page,
       );
     }
     return buildControls(
       videoState.context.orientation == Orientation.portrait,
       videoState,
       controller,
+      page: page,
     );
   });
 }
 
 Widget buildFullControls(
   VideoState videoState,
-  LiveRoomController controller,
-) {
+  LiveRoomController controller, {
+  dynamic page,
+}) {
   var padding = MediaQuery.of(videoState.context).padding;
   GlobalKey volumeButtonkey = GlobalKey();
   return Stack(
@@ -171,7 +175,7 @@ Widget buildFullControls(
                   ),
                   IconButton(
                     onPressed: () {
-                      controller.showFollowUserSheet();
+                      page.showFollowUserSheet();
                     },
                     icon: const Icon(
                       Remix.play_list_2_line,
@@ -194,7 +198,7 @@ Widget buildFullControls(
                   ),
                   IconButton(
                     onPressed: () {
-                      showPlayerSettings(controller);
+                      showPlayerSettings(controller, page: page);
                     },
                     icon: const Icon(
                       Icons.more_horiz,
@@ -270,7 +274,7 @@ Widget buildFullControls(
                   ),
                   IconButton(
                     onPressed: () {
-                      showDanmakuSettings(controller);
+                      showDanmakuSettings(controller, page: page);
                     },
                     icon: const ImageIcon(
                       AssetImage('assets/icons/icon_danmaku_setting.png'),
@@ -294,7 +298,7 @@ Widget buildFullControls(
                     child: IconButton(
                       key: volumeButtonkey,
                       onPressed: () {
-                        controller
+                        page
                             .showVolumeSlider(volumeButtonkey.currentContext!);
                       },
                       icon: const Icon(
@@ -306,7 +310,7 @@ Widget buildFullControls(
                   ),
                   TextButton(
                     onPressed: () {
-                      showQualitesInfo(controller);
+                      showQualitesInfo(controller, page: page);
                     },
                     child: Obx(
                       () => Text(
@@ -318,7 +322,7 @@ Widget buildFullControls(
                   ),
                   TextButton(
                     onPressed: () {
-                      showLinesInfo(controller);
+                      showLinesInfo(controller, page: page);
                     },
                     child: Text(
                       controller.currentLineInfo.value,
@@ -420,8 +424,9 @@ Widget buildLockButton(LiveRoomController controller) {
 Widget buildControls(
   bool isPortrait,
   VideoState videoState,
-  LiveRoomController controller,
-) {
+  LiveRoomController controller, {
+  dynamic page,
+}) {
   GlobalKey volumeButtonkey = GlobalKey();
   return Stack(
     children: [
@@ -527,7 +532,7 @@ Widget buildControls(
                 ),
                 IconButton(
                   onPressed: () {
-                    controller.showDanmuSettingsSheet();
+                    page.showDanmuSettingsSheet();
                   },
                   icon: const ImageIcon(
                     AssetImage('assets/icons/icon_danmaku_setting.png'),
@@ -550,7 +555,7 @@ Widget buildControls(
                   child: IconButton(
                     key: volumeButtonkey,
                     onPressed: () {
-                      controller.showVolumeSlider(
+                      page.showVolumeSlider(
                         volumeButtonkey.currentContext!,
                       );
                     },
@@ -565,7 +570,7 @@ Widget buildControls(
                   offstage: isPortrait,
                   child: TextButton(
                     onPressed: () {
-                      controller.showQualitySheet();
+                      page.showQualitySheet();
                     },
                     child: Obx(
                       () => Text(
@@ -580,7 +585,7 @@ Widget buildControls(
                   offstage: isPortrait,
                   child: TextButton(
                     onPressed: () {
-                      controller.showPlayUrlsSheet();
+                      page.showPlayUrlsSheet();
                     },
                     child: Text(
                       controller.currentLineInfo.value,
@@ -672,9 +677,9 @@ Widget buildDanmuView(VideoState videoState, LiveRoomController controller) {
   );
 }
 
-void showLinesInfo(LiveRoomController controller) {
+void showLinesInfo(LiveRoomController controller, {dynamic page}) {
   if (controller.isVertical.value) {
-    controller.showPlayUrlsSheet();
+    page.showPlayUrlsSheet();
     return;
   }
   Utils.showRightDialog(
@@ -724,9 +729,9 @@ void showLinesInfo(LiveRoomController controller) {
   );
 }
 
-void showQualitesInfo(LiveRoomController controller) {
+void showQualitesInfo(LiveRoomController controller, {dynamic page}) {
   if (controller.isVertical.value) {
-    controller.showQualitySheet();
+    page.showQualitySheet();
     return;
   }
   Utils.showRightDialog(
@@ -755,9 +760,9 @@ void showQualitesInfo(LiveRoomController controller) {
   );
 }
 
-void showDanmakuSettings(LiveRoomController controller) {
+void showDanmakuSettings(LiveRoomController controller, {dynamic page}) {
   if (controller.isVertical.value) {
-    controller.showDanmuSettingsSheet();
+    page.showDanmuSettingsSheet();
     return;
   }
   Utils.showRightDialog(
@@ -775,9 +780,9 @@ void showDanmakuSettings(LiveRoomController controller) {
   );
 }
 
-void showPlayerSettings(LiveRoomController controller) {
+void showPlayerSettings(LiveRoomController controller, {dynamic page}) {
   if (controller.isVertical.value) {
-    controller.showPlayerSettingsSheet();
+    page.showPlayerSettingsSheet();
     return;
   }
   Utils.showRightDialog(

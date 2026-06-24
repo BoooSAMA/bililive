@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:simple_live_app/app/constant.dart';
 import 'package:simple_live_app/app/log.dart';
+import 'package:simple_live_app/app/persisted_setting.dart';
 import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/modules/category/custom_category_controller.dart';
 import 'package:simple_live_app/services/local_storage_service.dart';
@@ -15,9 +16,15 @@ class AppSettingsController extends GetxController {
       Get.find<AppSettingsController>();
 
   /// 缩放模式
-  var scaleMode = 0.obs;
+  final scaleMode = PersistedSetting<int>(
+    LocalStorageService.kPlayerScaleMode,
+    0,
+  );
 
-  var themeMode = 0.obs;
+  final themeMode = PersistedSetting<int>(
+    LocalStorageService.kThemeMode,
+    0,
+  );
 
   var firstRun = false;
 
@@ -26,106 +33,169 @@ class AppSettingsController extends GetxController {
   /// 收藏页置顶的直播间 ID 集合
   var pinnedFollowIds = <String>{}.obs;
 
+  // --- Danmu settings ---
+  final danmuSize = PersistedSetting<double>(
+    LocalStorageService.kDanmuSize,
+    16.0,
+  );
+  final danmuOpacity = PersistedSetting<double>(
+    LocalStorageService.kDanmuOpacity,
+    1.0,
+  );
+  final danmuArea = PersistedSetting<double>(
+    LocalStorageService.kDanmuArea,
+    0.8,
+  );
+  final danmuSpeed = PersistedSetting<double>(
+    LocalStorageService.kDanmuSpeed,
+    10.0,
+  );
+  final danmuEnable = PersistedSetting<bool>(
+    LocalStorageService.kDanmuEnable,
+    true,
+  );
+  final danmuStrokeWidth = PersistedSetting<double>(
+    LocalStorageService.kDanmuStrokeWidth,
+    2.0,
+  );
+  final danmuTopMargin = PersistedSetting<double>(
+    LocalStorageService.kDanmuTopMargin,
+    0.0,
+  );
+  final danmuBottomMargin = PersistedSetting<double>(
+    LocalStorageService.kDanmuBottomMargin,
+    0.0,
+  );
+  final danmuFontWeight = PersistedSetting<int>(
+    LocalStorageService.kDanmuFontWeight,
+    4,
+  );
+
+  // --- Player settings ---
+  final hardwareDecode = PersistedSetting<bool>(
+    LocalStorageService.kHardwareDecode,
+    true,
+  );
+  final playerCompatMode = PersistedSetting<bool>(
+    LocalStorageService.kPlayerCompatMode,
+    false,
+  );
+  final playerBufferSize = PersistedSetting<int>(
+    LocalStorageService.kPlayerBufferSize,
+    32,
+  );
+  final playerAutoPause = PersistedSetting<bool>(
+    LocalStorageService.kPlayerAutoPause,
+    false,
+  );
+  final playerForceHttps = PersistedSetting<bool>(
+    LocalStorageService.kPlayerForceHttps,
+    false,
+  );
+  final autoFullScreen = PersistedSetting<bool>(
+    LocalStorageService.kAutoFullScreen,
+    false,
+  );
+  final playershowSuperChat = PersistedSetting<bool>(
+    LocalStorageService.kPlayerShowSuperChat,
+    true,
+  );
+  final playerVolume = PersistedSetting<double>(
+    LocalStorageService.kPlayerVolume,
+    100.0,
+  );
+
+  // --- Chat settings ---
+  final chatTextSize = PersistedSetting<double>(
+    LocalStorageService.kChatTextSize,
+    14.0,
+  );
+  final chatTextGap = PersistedSetting<double>(
+    LocalStorageService.kChatTextGap,
+    4.0,
+  );
+  final chatBubbleStyle = PersistedSetting<bool>(
+    LocalStorageService.kChatBubbleStyle,
+    false,
+  );
+
+  // --- Quality settings ---
+  final qualityLevel = PersistedSetting<int>(
+    LocalStorageService.kQualityLevel,
+    1,
+  );
+  final qualityLevelCellular = PersistedSetting<int>(
+    LocalStorageService.kQualityLevelCellular,
+    1,
+  );
+
+  // --- Auto exit settings ---
+  final autoExitEnable = PersistedSetting<bool>(
+    LocalStorageService.kAutoExitEnable,
+    false,
+  );
+  final autoExitDuration = PersistedSetting<int>(
+    LocalStorageService.kAutoExitDuration,
+    60,
+  );
+  final roomAutoExitDuration = PersistedSetting<int>(
+    LocalStorageService.kRoomAutoExitDuration,
+    60,
+  );
+
+  // --- PIP settings ---
+  final pipHideDanmu = PersistedSetting<bool>(
+    LocalStorageService.kPIPHideDanmu,
+    true,
+  );
+
+  // --- Style settings ---
+  final styleColor = PersistedSetting<int>(
+    LocalStorageService.kStyleColor,
+    0xff3498db,
+  );
+  final isDynamic = PersistedSetting<bool>(
+    LocalStorageService.kIsDynamic,
+    false,
+  );
+
+  // --- Other settings ---
+  final logEnable = PersistedSetting<bool>(
+    LocalStorageService.kLogEnable,
+    false,
+  );
+  final customPlayerOutput = PersistedSetting<bool>(
+    LocalStorageService.kCustomPlayerOutput,
+    false,
+  );
+  final videoHardwareDecoder = PersistedSetting<String>(
+    LocalStorageService.kVideoHardwareDecoder,
+    Platform.isAndroid ? "auto-safe" : "auto",
+  );
+  final audioSavePath = PersistedSetting<String>(
+    LocalStorageService.kAudioSavePath,
+    "",
+  );
+
+  // --- Manual settings (complex types or platform-dependent defaults) ---
+  RxSet<String> shieldList = <String>{}.obs;
+  RxList<String> siteSort = RxList<String>();
+  RxList<String> homeSort = RxList<String>();
+
+  var videoOutputDriver = "".obs;
+  var audioOutputDriver = "".obs;
+
   @override
   void onInit() {
-    themeMode.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kThemeMode, 0);
     firstRun = LocalStorageService.instance
         .getValue(LocalStorageService.kFirstRun, true);
-    danmuSize.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuSize, 16.0);
-    danmuOpacity.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuOpacity, 1.0);
-    danmuArea.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuArea, 0.8);
-    danmuSpeed.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuSpeed, 10.0);
-    danmuEnable.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuEnable, true);
-    danmuStrokeWidth.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuStrokeWidth, 2.0);
-    danmuTopMargin.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuTopMargin, 0.0);
-    danmuBottomMargin.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuBottomMargin, 0.0);
-    danmuFontWeight.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kDanmuFontWeight, 4);
-
-    hardwareDecode.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kHardwareDecode, true);
-    chatTextSize.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kChatTextSize, 14.0);
-
-    chatTextGap.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kChatTextGap, 4.0);
-
-    chatBubbleStyle.value = LocalStorageService.instance.getValue(
-      LocalStorageService.kChatBubbleStyle,
-      false,
-    );
-
-    qualityLevel.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kQualityLevel, 1);
-    qualityLevelCellular.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kQualityLevelCellular, 1);
-
-    autoExitEnable.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kAutoExitEnable, false);
-
-    autoExitDuration.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kAutoExitDuration, 60);
-
-    roomAutoExitDuration.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kRoomAutoExitDuration, 60);
-
-    playerCompatMode.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kPlayerCompatMode, false);
-
-    playerAutoPause.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kPlayerAutoPause, false);
-
-    playerForceHttps.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kPlayerForceHttps, false);
-
-    autoFullScreen.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kAutoFullScreen, false);
 
     // ignore: invalid_use_of_protected_member
     shieldList.value = LocalStorageService.instance.shieldBox.values.toSet();
 
-    scaleMode.value = LocalStorageService.instance.getValue(
-      LocalStorageService.kPlayerScaleMode,
-      0,
-    );
-
-    playerVolume.value = LocalStorageService.instance.getValue(
-      LocalStorageService.kPlayerVolume,
-      100.0,
-    );
-    audioSavePath.value = LocalStorageService.instance.getValue(
-      LocalStorageService.kAudioSavePath,
-      "",
-    );
-    pipHideDanmu.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kPIPHideDanmu, true);
-
-    styleColor.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kStyleColor, 0xff3498db);
-
-    isDynamic.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kIsDynamic, false);
-
-    playerBufferSize.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kPlayerBufferSize, 32);
-
-    logEnable.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kLogEnable, false);
     if (logEnable.value) {
       Log.initWriter();
     }
-
-    customPlayerOutput.value = LocalStorageService.instance
-        .getValue(LocalStorageService.kCustomPlayerOutput, false);
 
     videoOutputDriver.value = LocalStorageService.instance.getValue(
       LocalStorageService.kVideoOutputDriver,
@@ -145,11 +215,6 @@ class AppSettingsController extends GetxController {
                       : Platform.isMacOS
                           ? "coreaudio"
                           : "sdl",
-    );
-
-    videoHardwareDecoder.value = LocalStorageService.instance.getValue(
-      LocalStorageService.kVideoHardwareDecoder,
-      Platform.isAndroid ? "auto-safe" : "auto",
     );
 
     initSiteSort();
@@ -297,153 +362,10 @@ class AppSettingsController extends GetxController {
 
   void setTheme(int i) {
     themeMode.value = i;
-    var mode = ThemeMode.values[i];
-
-    LocalStorageService.instance.setValue(LocalStorageService.kThemeMode, i);
-    Get.changeThemeMode(mode);
+    Get.changeThemeMode(ThemeMode.values[i]);
   }
 
-  var hardwareDecode = true.obs;
-  void setHardwareDecode(bool e) {
-    hardwareDecode.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kHardwareDecode, e);
-  }
-
-  var chatTextSize = 14.0.obs;
-  void setChatTextSize(double e) {
-    chatTextSize.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kChatTextSize, e);
-  }
-
-  var chatTextGap = 4.0.obs;
-  void setChatTextGap(double e) {
-    chatTextGap.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kChatTextGap, e);
-  }
-
-  var chatBubbleStyle = false.obs;
-  void setChatBubbleStyle(bool e) {
-    chatBubbleStyle.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kChatBubbleStyle, e);
-  }
-
-  var danmuSize = 16.0.obs;
-  void setDanmuSize(double e) {
-    danmuSize.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kDanmuSize, e);
-  }
-
-  var danmuSpeed = 10.0.obs;
-  void setDanmuSpeed(double e) {
-    danmuSpeed.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kDanmuSpeed, e);
-  }
-
-  var danmuArea = 0.8.obs;
-  void setDanmuArea(double e) {
-    danmuArea.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kDanmuArea, e);
-  }
-
-  var danmuOpacity = 1.0.obs;
-  void setDanmuOpacity(double e) {
-    danmuOpacity.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kDanmuOpacity, e);
-  }
-
-  var danmuEnable = true.obs;
-  void setDanmuEnable(bool e) {
-    danmuEnable.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kDanmuEnable, e);
-  }
-
-  var danmuStrokeWidth = 2.0.obs;
-  void setDanmuStrokeWidth(double e) {
-    danmuStrokeWidth.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kDanmuStrokeWidth, e);
-  }
-
-  var danmuFontWeight = 4.obs;
-  void setDanmuFontWeight(int e) {
-    danmuFontWeight.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kDanmuFontWeight, e);
-  }
-
-  var qualityLevel = 1.obs;
-  void setQualityLevel(int level) {
-    qualityLevel.value = level;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kQualityLevel, level);
-  }
-
-  var qualityLevelCellular = 1.obs;
-  void setQualityLevelCellular(int level) {
-    qualityLevelCellular.value = level;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kQualityLevelCellular, level);
-  }
-
-  var autoExitEnable = false.obs;
-  void setAutoExitEnable(bool e) {
-    autoExitEnable.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAutoExitEnable, e);
-  }
-
-  var autoExitDuration = 60.obs;
-  void setAutoExitDuration(int e) {
-    autoExitDuration.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAutoExitDuration, e);
-  }
-
-  var roomAutoExitDuration = 60.obs;
-  void setRoomAutoExitDuration(int e) {
-    roomAutoExitDuration.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kRoomAutoExitDuration, e);
-  }
-
-  var playerCompatMode = false.obs;
-  void setPlayerCompatMode(bool e) {
-    playerCompatMode.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kPlayerCompatMode, e);
-  }
-
-  var playerBufferSize = 32.obs;
-  void setPlayerBufferSize(int e) {
-    playerBufferSize.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kPlayerBufferSize, e);
-  }
-
-  var playerAutoPause = false.obs;
-  void setPlayerAutoPause(bool e) {
-    playerAutoPause.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kPlayerAutoPause, e);
-  }
-
-  var autoFullScreen = false.obs;
-  void setAutoFullScreen(bool e) {
-    autoFullScreen.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAutoFullScreen, e);
-  }
-
-  var playershowSuperChat = true.obs;
-  void setPlayerShowSuperChat(bool e) {
-    playershowSuperChat.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kPlayerShowSuperChat, e);
-  }
-
-  RxSet<String> shieldList = <String>{}.obs;
+  // --- Shield list (manual, uses Hive Box directly) ---
   void addShieldList(String e) {
     shieldList.add(e);
     LocalStorageService.instance.shieldBox.put(e, e);
@@ -459,15 +381,7 @@ class AppSettingsController extends GetxController {
     await LocalStorageService.instance.shieldBox.clear();
   }
 
-  void setScaleMode(int value) {
-    scaleMode.value = value;
-    LocalStorageService.instance.setValue(
-      LocalStorageService.kPlayerScaleMode,
-      value,
-    );
-  }
-
-  RxList<String> siteSort = RxList<String>();
+  // --- Site/Home sort (manual, uses join serialization) ---
   void setSiteSort(List<String> e) {
     siteSort.value = e;
     LocalStorageService.instance.setValue(
@@ -476,7 +390,6 @@ class AppSettingsController extends GetxController {
     );
   }
 
-  RxList<String> homeSort = RxList<String>();
   void setHomeSort(List<String> e) {
     homeSort.value = e;
     LocalStorageService.instance.setValue(
@@ -485,95 +398,72 @@ class AppSettingsController extends GetxController {
     );
   }
 
-  Rx<double> playerVolume = 100.0.obs;
-  void setPlayerVolume(double value) {
-    playerVolume.value = value;
-    LocalStorageService.instance.setValue(
-      LocalStorageService.kPlayerVolume,
-      value,
-    );
+  // --- Audio save path (has path normalization) ---
+  void setAudioSavePath(String e) {
+    var normalized = e.endsWith('/') ? e : '$e/';
+    audioSavePath.value = normalized;
   }
 
-  var pipHideDanmu = true.obs;
-  void setPIPHideDanmu(bool e) {
-    pipHideDanmu.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kPIPHideDanmu, e);
-  }
-
-  var styleColor = 0xff3498db.obs;
-  void setStyleColor(int e) {
-    styleColor.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kStyleColor, e);
-  }
-
-  var isDynamic = false.obs;
-  void setIsDynamic(bool e) {
-    isDynamic.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kIsDynamic, e);
-  }
-
-  var danmuTopMargin = 0.0.obs;
-  void setDanmuTopMargin(double e) {
-    danmuTopMargin.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kDanmuTopMargin, e);
-  }
-
-  var danmuBottomMargin = 0.0.obs;
-  void setDanmuBottomMargin(double e) {
-    danmuBottomMargin.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kDanmuBottomMargin, e);
-  }
-
-  var logEnable = false.obs;
-  void setLogEnable(bool e) {
-    logEnable.value = e;
-    LocalStorageService.instance.setValue(LocalStorageService.kLogEnable, e);
-  }
-
-  var customPlayerOutput = false.obs;
-  void setCustomPlayerOutput(bool e) {
-    customPlayerOutput.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kCustomPlayerOutput, e);
-  }
-
-  var videoOutputDriver = "".obs;
+  // --- Manual setters for video/audio output drivers (kept manual) ---
   void setVideoOutputDriver(String e) {
     videoOutputDriver.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kVideoOutputDriver, e);
   }
 
-  var audioOutputDriver = "".obs;
   void setAudioOutputDriver(String e) {
     audioOutputDriver.value = e;
     LocalStorageService.instance
         .setValue(LocalStorageService.kAudioOutputDriver, e);
   }
 
-  var videoHardwareDecoder = "".obs;
-  void setVideoHardwareDecoder(String e) {
-    videoHardwareDecoder.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kVideoHardwareDecoder, e);
-  }
+  // --- Persisted setting setters (persistence handled automatically) ---
 
-  var playerForceHttps = false.obs;
-  void setPlayerForceHttps(bool e) {
-    playerForceHttps.value = e;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kPlayerForceHttps, e);
-  }
+  // Danmu
+  void setDanmuSize(double e) => danmuSize.value = e;
+  void setDanmuOpacity(double e) => danmuOpacity.value = e;
+  void setDanmuArea(double e) => danmuArea.value = e;
+  void setDanmuSpeed(double e) => danmuSpeed.value = e;
+  void setDanmuEnable(bool e) => danmuEnable.value = e;
+  void setDanmuStrokeWidth(double e) => danmuStrokeWidth.value = e;
+  void setDanmuTopMargin(double e) => danmuTopMargin.value = e;
+  void setDanmuBottomMargin(double e) => danmuBottomMargin.value = e;
+  void setDanmuFontWeight(int e) => danmuFontWeight.value = e;
 
-  /// 音频保存路径
-  var audioSavePath = "".obs;
-  void setAudioSavePath(String e) {
-    // 确保路径以 / 结尾，后续拼接文件名时语义清晰
-    var normalized = e.endsWith('/') ? e : '$e/';
-    audioSavePath.value = normalized;
-    LocalStorageService.instance
-        .setValue(LocalStorageService.kAudioSavePath, normalized);
-  }
+  // Player
+  void setHardwareDecode(bool e) => hardwareDecode.value = e;
+  void setPlayerCompatMode(bool e) => playerCompatMode.value = e;
+  void setPlayerBufferSize(int e) => playerBufferSize.value = e;
+  void setPlayerAutoPause(bool e) => playerAutoPause.value = e;
+  void setPlayerForceHttps(bool e) => playerForceHttps.value = e;
+  void setAutoFullScreen(bool e) => autoFullScreen.value = e;
+  void setPlayerShowSuperChat(bool e) => playershowSuperChat.value = e;
+  void setPlayerVolume(double value) => playerVolume.value = value;
+  void setScaleMode(int value) => scaleMode.value = value;
+
+  // Chat
+  void setChatTextSize(double e) => chatTextSize.value = e;
+  void setChatTextGap(double e) => chatTextGap.value = e;
+  void setChatBubbleStyle(bool e) => chatBubbleStyle.value = e;
+
+  // Quality
+  void setQualityLevel(int level) => qualityLevel.value = level;
+  void setQualityLevelCellular(int level) => qualityLevelCellular.value = level;
+
+  // Auto exit
+  void setAutoExitEnable(bool e) => autoExitEnable.value = e;
+  void setAutoExitDuration(int e) => autoExitDuration.value = e;
+  void setRoomAutoExitDuration(int e) => roomAutoExitDuration.value = e;
+
+  // PIP
+  void setPIPHideDanmu(bool e) => pipHideDanmu.value = e;
+
+  // Style
+  void setStyleColor(int e) => styleColor.value = e;
+  void setIsDynamic(bool e) => isDynamic.value = e;
+
+  // Other
+  void setLogEnable(bool e) => logEnable.value = e;
+  void setCustomPlayerOutput(bool e) => customPlayerOutput.value = e;
+  void setVideoHardwareDecoder(String e) => videoHardwareDecoder.value = e;
 }

@@ -3,15 +3,22 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:lottie/lottie.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:remixicon/remixicon.dart';
 import 'package:simple_live_app/app/app_style.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
+import 'package:simple_live_app/app/sites.dart';
 import 'package:simple_live_app/app/utils.dart';
 import 'package:simple_live_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_app/modules/live_room/player/player_controls.dart';
+import 'package:simple_live_app/modules/settings/danmu_settings_page.dart';
+import 'package:simple_live_app/services/auto_exit_service.dart';
+import 'package:simple_live_app/services/follow_service.dart';
+import 'package:simple_live_app/services/recording_service.dart';
+import 'package:simple_live_app/widgets/follow_user_item.dart';
 import 'package:simple_live_app/widgets/keep_alive_wrapper.dart';
 import 'package:simple_live_app/widgets/net_image.dart';
 import 'package:simple_live_app/widgets/settings/settings_action.dart';
@@ -26,6 +33,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
 
   @override
   Widget build(BuildContext context) {
+    controller.onShowAutoExitSheet = showAutoExitSheet;
     final page = Obx(
       () {
         if (controller.loadError.value) {
@@ -113,7 +121,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         return Scaffold(
           appBar: AppBar(
             title: Obx(
-              () => controller.isRecording.value
+              () => RecordingService.instance.isRecording.value
                   ? Row(
                       children: [
                         Flexible(
@@ -157,7 +165,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    controller.recordingDuration.value,
+                                    RecordingService.instance.duration.value,
                                     style: const TextStyle(
                                       fontSize: 12,
                                       color: Colors.redAccent,
@@ -171,7 +179,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         const SizedBox(width: 6),
                         // 毛玻璃块2：文件大小
                         Obx(() {
-                          var size = controller.recordingFileSize.value;
+                          var size = RecordingService.instance.fileSize.value;
                           if (size.isEmpty) return const SizedBox.shrink();
                           return ClipRRect(
                             borderRadius: BorderRadius.circular(8),
@@ -289,7 +297,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 child: const Icon(Remix.share_line),
               ),
               Obx(
-                () => controller.isRecording.value
+                () => RecordingService.instance.isRecording.value
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -297,7 +305,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
                             ),
-                            onPressed: controller.toggleRecording,
+                            onPressed: RecordingService.instance.toggleRecording,
                             child: const Icon(
                               Remix.stop_circle_line,
                               color: Colors.red,
@@ -307,7 +315,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
                             ),
-                            onPressed: controller.cancelRecording,
+                            onPressed: RecordingService.instance.cancelRecording,
                             child: const Icon(
                               Remix.close_circle_line,
                               color: Colors.red,
@@ -316,7 +324,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         ],
                       )
                     : TextButton(
-                        onPressed: controller.toggleRecording,
+                        onPressed: RecordingService.instance.toggleRecording,
                         child: const Icon(Remix.mic_line),
                       ),
               ),
@@ -362,7 +370,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           resumeUponEnteringForegroundMode:
               AppSettingsController.instance.playerAutoPause.value,
           controls: (state) {
-            return playerControls(state, controller);
+            return playerControls(state, controller, page: this);
           },
           aspectRatio: aspectRatio,
           fit: boxFit,
@@ -520,7 +528,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             ),
             Expanded(
               child: Obx(
-                () => controller.isRecording.value
+                () => RecordingService.instance.isRecording.value
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -528,7 +536,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
                             ),
-                            onPressed: controller.toggleRecording,
+                            onPressed: RecordingService.instance.toggleRecording,
                             child: const Icon(
                               Remix.stop_circle_line,
                               color: Colors.red,
@@ -538,7 +546,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
                             ),
-                            onPressed: controller.cancelRecording,
+                            onPressed: RecordingService.instance.cancelRecording,
                             child: const Icon(
                               Remix.close_circle_line,
                               color: Colors.red,
@@ -547,7 +555,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                         ],
                       )
                     : TextButton(
-                        onPressed: controller.toggleRecording,
+                        onPressed: RecordingService.instance.toggleRecording,
                         child: const Icon(Remix.mic_line),
                       ),
               ),
@@ -760,11 +768,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       children: [
         Obx(
           () => Visibility(
-            visible: controller.autoExitEnable.value,
+            visible: AutoExitService.instance.autoExitEnable.value,
             child: ListTile(
               leading: const Icon(Icons.timer_outlined),
               visualDensity: VisualDensity.compact,
-              title: Text("${parseDuration(controller.countdown.value)}后自动关闭"),
+              title: Text("${parseDuration(AutoExitService.instance.countdown.value)}后自动关闭"),
             ),
           ),
         ),
@@ -842,22 +850,22 @@ class LiveRoomPage extends GetView<LiveRoomController> {
             children: [
               SettingsAction(
                 title: "关键词屏蔽",
-                onTap: controller.showDanmuShield,
+                onTap: showDanmuShield,
               ),
               AppStyle.divider,
               SettingsAction(
                 title: "弹幕设置",
-                onTap: controller.showDanmuSettingsSheet,
+                onTap: showDanmuSettingsSheet,
               ),
               AppStyle.divider,
               SettingsAction(
                 title: "定时关闭",
-                onTap: controller.showAutoExitSheet,
+                onTap: showAutoExitSheet,
               ),
               AppStyle.divider,
               SettingsAction(
                 title: "画面尺寸",
-                onTap: controller.showPlayerSettingsSheet,
+                onTap: showPlayerSettingsSheet,
               ),
             ],
           ),
@@ -907,7 +915,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               title: const Text("切换清晰度"),
               onTap: () {
                 Get.back();
-                controller.showQualitySheet();
+                showQualitySheet();
               },
             ),
             ListTile(
@@ -916,7 +924,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Get.back();
-                controller.showPlayUrlsSheet();
+                showPlayUrlsSheet();
               },
             ),
             ListTile(
@@ -925,7 +933,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Get.back();
-                controller.showPlayerSettingsSheet();
+                showPlayerSettingsSheet();
               },
             ),
             ListTile(
@@ -954,7 +962,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 Get.back();
-                controller.showAutoExitSheet();
+                showAutoExitSheet();
               },
             ),
             ListTile(
@@ -1011,5 +1019,333 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       return "${m.toString().padLeft(2, '0')}分钟${s.toString().padLeft(2, '0')}秒";
     }
     return "${s.toString().padLeft(2, '0')}秒";
+  }
+
+  /// 底部打开播放器设置
+  void showDanmuSettingsSheet() {
+    Utils.showBottomSheet(
+      title: "弹幕设置",
+      child: ListView(
+        padding: AppStyle.edgeInsetsA12,
+        children: [
+          DanmuSettingsView(
+            danmakuController: controller.danmakuController,
+            onTapDanmuShield: () {
+              Get.back();
+              showDanmuShield();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showVolumeSlider(BuildContext targetContext) {
+    SmartDialog.showAttach(
+      targetContext: targetContext,
+      alignment: Alignment.topCenter,
+      displayTime: const Duration(seconds: 3),
+      maskColor: const Color(0x00000000),
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            borderRadius: AppStyle.radius12,
+            color: Theme.of(context).cardColor,
+          ),
+          padding: AppStyle.edgeInsetsA4,
+          child: Obx(
+            () => SizedBox(
+              width: 200,
+              child: Slider(
+                min: 0,
+                max: 100,
+                value: AppSettingsController.instance.playerVolume.value,
+                onChanged: (newValue) {
+                  controller.player.setVolume(newValue);
+                  AppSettingsController.instance.setPlayerVolume(newValue);
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void showQualitySheet() {
+    Utils.showBottomSheet(
+      title: "切换清晰度",
+      child: RadioGroup(
+        groupValue: controller.currentQuality,
+        onChanged: (e) {
+          Get.back();
+          controller.currentQuality = e ?? 0;
+          controller.getPlayUrl();
+        },
+        child: ListView.builder(
+          itemCount: controller.qualites.length,
+          itemBuilder: (_, i) {
+            var item = controller.qualites[i];
+            return RadioListTile(
+              value: i,
+              title: Text(item.quality),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void showPlayUrlsSheet() {
+    Utils.showBottomSheet(
+      title: "切换线路",
+      child: RadioGroup(
+        groupValue: controller.currentLineIndex,
+        onChanged: (e) {
+          Get.back();
+          //currentLineIndex = i;
+          //setPlayer();
+          controller.changePlayLine(e ?? 0);
+        },
+        child: ListView.builder(
+          itemCount: controller.playUrls.length,
+          itemBuilder: (_, i) {
+            return RadioListTile(
+              value: i,
+              title: Text("线路${i + 1}"),
+              secondary: Text(
+                controller.playUrls[i].contains(".flv") ? "FLV" : "HLS",
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void showPlayerSettingsSheet() {
+    Utils.showBottomSheet(
+      title: "画面尺寸",
+      child: Obx(
+        () => RadioGroup(
+          groupValue: AppSettingsController.instance.scaleMode.value,
+          onChanged: (e) {
+            AppSettingsController.instance.setScaleMode(e ?? 0);
+            controller.updateScaleMode();
+          },
+          child: ListView(
+            padding: AppStyle.edgeInsetsV12,
+            children: const [
+              RadioListTile(
+                value: 0,
+                title: Text("适应"),
+                visualDensity: VisualDensity.compact,
+              ),
+              RadioListTile(
+                value: 1,
+                title: Text("拉伸"),
+                visualDensity: VisualDensity.compact,
+              ),
+              RadioListTile(
+                value: 2,
+                title: Text("铺满"),
+                visualDensity: VisualDensity.compact,
+              ),
+              RadioListTile(
+                value: 3,
+                title: Text("16:9"),
+                visualDensity: VisualDensity.compact,
+              ),
+              RadioListTile(
+                value: 4,
+                title: Text("4:3"),
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void showDanmuShield() {
+    TextEditingController keywordController = TextEditingController();
+
+    void addKeyword() {
+      if (keywordController.text.isEmpty) {
+        SmartDialog.showToast("请输入关键词");
+        return;
+      }
+
+      AppSettingsController.instance
+          .addShieldList(keywordController.text.trim());
+      keywordController.text = "";
+    }
+
+    Utils.showBottomSheet(
+      title: "关键词屏蔽",
+      child: ListView(
+        padding: AppStyle.edgeInsetsA12,
+        children: [
+          TextField(
+            controller: keywordController,
+            decoration: InputDecoration(
+              contentPadding: AppStyle.edgeInsetsH12,
+              border: const OutlineInputBorder(),
+              hintText: "请输入关键词",
+              suffixIcon: TextButton.icon(
+                onPressed: addKeyword,
+                icon: const Icon(Icons.add),
+                label: const Text("添加"),
+              ),
+            ),
+            onSubmitted: (e) {
+              addKeyword();
+            },
+          ),
+          AppStyle.vGap12,
+          Obx(
+            () => Text(
+              "已添加${AppSettingsController.instance.shieldList.length}个关键词（点击移除）",
+              style: Get.textTheme.titleSmall,
+            ),
+          ),
+          AppStyle.vGap12,
+          Obx(
+            () => Wrap(
+              runSpacing: 12,
+              spacing: 12,
+              children: AppSettingsController.instance.shieldList
+                  .map(
+                    (item) => InkWell(
+                      borderRadius: AppStyle.radius24,
+                      onTap: () {
+                        AppSettingsController.instance.removeShieldList(item);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: AppStyle.radius24,
+                        ),
+                        padding: AppStyle.edgeInsetsH12.copyWith(
+                          top: 4,
+                          bottom: 4,
+                        ),
+                        child: Text(
+                          item,
+                          style: Get.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void showFollowUserSheet() {
+    Utils.showBottomSheet(
+      title: "关注列表",
+      child: Obx(
+        () => Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: FollowService.instance.loadData,
+              child: ListView.builder(
+                itemCount: FollowService.instance.liveList.length,
+                itemBuilder: (_, i) {
+                  var item = FollowService.instance.liveList[i];
+                  return Obx(
+                    () => FollowUserItem(
+                      item: item,
+                      playing: controller.rxSite.value.id == item.siteId &&
+                          controller.rxRoomId.value == item.roomId,
+                      onTap: () {
+                        Get.back();
+                        controller.resetRoom(
+                          Sites.allSites[item.siteId]!,
+                          item.roomId,
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void showAutoExitSheet() {
+    if (AppSettingsController.instance.autoExitEnable.value &&
+        !AutoExitService.instance.delayAutoExit.value) {
+      SmartDialog.showToast("已设置了全局定时关闭");
+      return;
+    }
+    Utils.showBottomSheet(
+      title: "定时关闭",
+      child: ListView(
+        children: [
+          Obx(
+            () => SwitchListTile(
+              title: Text(
+                "启用定时关闭",
+                style: Get.textTheme.titleMedium,
+              ),
+              value: AutoExitService.instance.autoExitEnable.value,
+              onChanged: (e) {
+                AutoExitService.instance.autoExitEnable.value = e;
+
+                AutoExitService.instance.start();
+              },
+            ),
+          ),
+          Obx(
+            () => ListTile(
+              enabled: AutoExitService.instance.autoExitEnable.value,
+              title: Text(
+                "自动关闭时间：${AutoExitService.instance.autoExitMinutes.value ~/ 60}小时${AutoExitService.instance.autoExitMinutes.value % 60}分钟",
+                style: Get.textTheme.titleMedium,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                var value = await showTimePicker(
+                  context: Get.context!,
+                  initialTime: TimeOfDay(
+                    hour: AutoExitService.instance.autoExitMinutes.value ~/ 60,
+                    minute: AutoExitService.instance.autoExitMinutes.value % 60,
+                  ),
+                  initialEntryMode: TimePickerEntryMode.inputOnly,
+                  builder: (_, child) {
+                    return MediaQuery(
+                      data: Get.mediaQuery.copyWith(
+                        alwaysUse24HourFormat: true,
+                      ),
+                      child: child!,
+                    );
+                  },
+                );
+                if (value == null || (value.hour == 0 && value.minute == 0)) {
+                  return;
+                }
+                var duration =
+                    Duration(hours: value.hour, minutes: value.minute);
+                AutoExitService.instance.autoExitMinutes.value =
+                    duration.inMinutes;
+                AppSettingsController.instance
+                    .setRoomAutoExitDuration(
+                        AutoExitService.instance.autoExitMinutes.value);
+                AutoExitService.instance.start();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
