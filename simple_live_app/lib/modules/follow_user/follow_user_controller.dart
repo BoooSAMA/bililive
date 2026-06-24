@@ -8,8 +8,14 @@ import 'package:simple_live_app/services/follow_export_service.dart';
 import 'package:simple_live_app/services/follow_service.dart';
 
 class FollowUserController extends BasePageController<FollowUser> {
-  /// 0:全部 1:直播中 2:未直播
+  /// 0:全部(分组) 1:直播中 2:未直播
   var filterMode = 0.obs;
+
+  /// 分组：直播中的直播间
+  var liveItems = <FollowUser>[].obs;
+
+  /// 分组：未开播的直播间
+  var notLiveItems = <FollowUser>[].obs;
 
   @override
   void onInit() {
@@ -21,6 +27,9 @@ class FollowUserController extends BasePageController<FollowUser> {
         }
       },
     );
+    // 监听数据源变化，自动刷新分组
+    ever(FollowService.instance.liveList, (_) => filterData());
+    ever(FollowService.instance.notLiveList, (_) => filterData());
     super.onInit();
   }
 
@@ -53,7 +62,7 @@ class FollowUserController extends BasePageController<FollowUser> {
     return [];
   }
 
-  /// 置顶直播间数量
+  /// 当前显示列表中的置顶直播间数量
   int get pinnedCount {
     final pinnedIds = AppSettingsController.instance.pinnedFollowIds;
     var count = 0;
@@ -67,28 +76,43 @@ class FollowUserController extends BasePageController<FollowUser> {
     // 先拷贝再赋值，避免遍历时 RxList 被并发修改
     List<FollowUser> source;
     switch (filterMode.value) {
-      case 0:
-        source = FollowService.instance.followList.toList();
+      case 0: // 全部：分组展示
+        liveItems.value = FollowService.instance.liveList.toList();
+        notLiveItems.value = FollowService.instance.notLiveList.toList();
+        source = [...liveItems, ...notLiveItems];
         break;
-      case 1:
-        source = FollowService.instance.liveList.toList();
+      case 1: // 仅直播中
+        liveItems.value = FollowService.instance.liveList.toList();
+        notLiveItems.value = [];
+        source = liveItems.toList();
         break;
-      case 2:
-        source = FollowService.instance.notLiveList.toList();
+      case 2: // 仅未开播
+        liveItems.value = [];
+        notLiveItems.value = FollowService.instance.notLiveList.toList();
+        source = notLiveItems.toList();
         break;
       default:
+        liveItems.value = [];
+        notLiveItems.value = [];
         source = [];
     }
 
     // 置顶排序：pinned 项排前面
     final pinnedIds = AppSettingsController.instance.pinnedFollowIds;
-    source.sort((a, b) {
-      final aPinned = pinnedIds.contains(a.id);
-      final bPinned = pinnedIds.contains(b.id);
-      if (aPinned && !bPinned) return -1;
-      if (!aPinned && bPinned) return 1;
-      return 0;
-    });
+
+    void sortPinned(List<FollowUser> items) {
+      items.sort((a, b) {
+        final aPinned = pinnedIds.contains(a.id);
+        final bPinned = pinnedIds.contains(b.id);
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        return 0;
+      });
+    }
+
+    sortPinned(source);
+    sortPinned(liveItems);
+    sortPinned(notLiveItems);
 
     list.assignAll(source);
   }

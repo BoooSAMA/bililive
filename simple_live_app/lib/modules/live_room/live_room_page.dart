@@ -124,6 +124,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                           ),
                         ),
                         const SizedBox(width: 8),
+                        // 毛玻璃块1：红点 + 时长
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: BackdropFilter(
@@ -137,7 +138,10 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.15),
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white.withValues(alpha: 0.15)
+                                    : Colors.black.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -159,28 +163,46 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                                       color: Colors.redAccent,
                                     ),
                                   ),
-                                  Obx(() {
-                                    var size =
-                                        controller.recordingFileSize.value;
-                                    return size.isNotEmpty
-                                        ? Padding(
-                                            padding: const EdgeInsets.only(
-                                                left: 10),
-                                            child: Text(
-                                              size,
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white70,
-                                              ),
-                                            ),
-                                          )
-                                        : const SizedBox.shrink();
-                                  }),
                                 ],
                               ),
                             ),
                           ),
                         ),
+                        const SizedBox(width: 6),
+                        // 毛玻璃块2：文件大小
+                        Obx(() {
+                          var size = controller.recordingFileSize.value;
+                          if (size.isEmpty) return const SizedBox.shrink();
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: 6,
+                                sigmaY: 6,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white.withValues(alpha: 0.15)
+                                      : Colors.black.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  size,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
                       ],
                     )
                   : Text(controller.detail.value?.title ?? "直播间"),

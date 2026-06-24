@@ -39,12 +39,11 @@ class FollowService extends GetxService {
     super.onInit();
   }
 
-  /// 加载关注列表并检查直播状态
+  /// 加载关注列表并检查直播状态（并发加速版）
   Future<void> loadData() async {
     if (_loading) return;
     _loading = true;
     try {
-      // 先拷贝出数据，避免在遍历时被其他代码修改
       final users = DBService.instance.followBox.values.toList();
       followList.value = users;
 
@@ -56,37 +55,67 @@ class FollowService extends GetxService {
 
       updating.value = true;
       loadProgress.value = 0.0;
-      List<FollowUser> live = [];
-      List<FollowUser> notLive = [];
 
-      for (var i = 0; i < users.length; i++) {
-        final user = users[i];
-        try {
-          var siteInfo = Sites.allSites[user.siteId];
-          if (siteInfo == null) continue;
-          var isLive =
-              await siteInfo.liveSite.getLiveStatus(roomId: user.roomId);
-          user.liveStatus.value = isLive ? 2 : 1;
-          if (isLive) {
-            live.add(user);
-          } else {
-            notLive.add(user);
+      // 先全部初始化为"未开播"，让 UI 立即有内容可展示
+      for (final user in users) {
+        user.liveStatus.value = 1;
+      }
+      liveList.value = [];
+      notLiveList.value = users.toList();
+
+      final liveIds = <String>{};
+      int completed = 0;
+      const maxConcurrency = 5;
+
+      // 分批并发检查直播状态
+      for (var i = 0; i < users.length; i += maxConcurrency) {
+        final end = (i + maxConcurrency > users.length)
+            ? users.length
+            : i + maxConcurrency;
+        final batch = users.sublist(i, end);
+
+        await Future.wait(batch.map((user) async {
+          try {
+            var siteInfo = Sites.allSites[user.siteId];
+            if (siteInfo == null) return;
+            var isLive =
+                await siteInfo.liveSite.getLiveStatus(roomId: user.roomId);
+            user.liveStatus.value = isLive ? 2 : 1;
+            if (isLive) {
+              liveIds.add(user.id);
+            }
+          } catch (e) {
+            Log.logPrint(e);
+            user.liveStatus.value = 0;
+          } finally {
+            completed++;
+            loadProgress.value = completed / users.length;
           }
-        } catch (e) {
-          Log.logPrint(e);
-          user.liveStatus.value = 0;
-          notLive.add(user);
-        }
-        loadProgress.value = (i + 1) / users.length;
+        }));
+
+        // 每批完成后增量更新列表，实现流式展示
+        _syncLists(users, liveIds);
       }
 
-      // 原子性设置三个列表的值
-      liveList.value = live;
-      notLiveList.value = notLive;
       updating.value = false;
     } finally {
       _loading = false;
     }
+  }
+
+  /// 根据 [liveIds] 重新分配 liveList / notLiveList
+  void _syncLists(List<FollowUser> allUsers, Set<String> liveIds) {
+    final live = <FollowUser>[];
+    final notLive = <FollowUser>[];
+    for (final user in allUsers) {
+      if (liveIds.contains(user.id)) {
+        live.add(user);
+      } else {
+        notLive.add(user);
+      }
+    }
+    liveList.value = live;
+    notLiveList.value = notLive;
   }
 
   /// 添加关注
