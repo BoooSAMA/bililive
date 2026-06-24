@@ -246,10 +246,11 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                   children: [
                     buildUserProfile(context),
                     buildMessageArea(),
-                  ],
-                ),
-              ),
             ],
+            ),
+          ),
+        ),
+      ],
           ),
         ),
         Container(
@@ -264,7 +265,9 @@ class LiveRoomPage extends GetView<LiveRoomController> {
           padding: AppStyle.edgeInsetsV4.copyWith(
             bottom: AppStyle.bottomBarHeight + 4,
           ),
-          child: Row(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
             children: [
               Obx(
                 () => TextButton(
@@ -282,7 +285,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
                 onPressed: controller.refreshRoom,
                 child: const Icon(Remix.refresh_line),
               ),
-              const Expanded(child: Center()),
               TextButton(
                 onPressed: controller.share,
                 child: const Icon(Remix.share_line),
@@ -333,8 +335,6 @@ class LiveRoomPage extends GetView<LiveRoomController> {
       ],
     );
   }
-
-  Widget buildMediaPlayer() {
     var boxFit = BoxFit.contain;
     double? aspectRatio;
     if (AppSettingsController.instance.scaleMode.value == 0) {

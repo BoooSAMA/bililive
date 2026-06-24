@@ -141,9 +141,9 @@ class FollowUserPage extends GetView<FollowUserController> {
       ),
       child: Row(
         children: [
-          _filterChip(context, '全部', allCount, 0),
           _filterChip(context, '直播中', liveCount, 1),
           _filterChip(context, '未开播', notLiveCount, 2),
+          _filterChip(context, '全部', allCount, 0),
         ],
       ),
     );
